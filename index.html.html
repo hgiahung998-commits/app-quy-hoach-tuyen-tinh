@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giải Bài Toán Quy Hoạch Tuyến Tính</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- JSXGraph -->
+    <script type="text/javascript" charset="UTF-8" src="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraphcore.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css" />
+
+    <style>
+        /* Custom styles for JSXGraph container */
+        .jxgbox {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border-radius: 1rem;
+            overflow: hidden;
+            background-color: #f8fafc;
+            border: 2px solid #fce7f3; /* pink-200 */
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 font-sans p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-2">Giải Bài Toán Quy Hoạch Tuyến Tính</h1>
+            <p class="text-slate-500">Ứng dụng trực quan hoá miền nghiệm & tìm phương án tối ưu (Bám sát SGK)</p>
+        </div>
+
+        <!-- Main Layout: 2 Columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Left Column: Inputs & Results -->
+            <div class="space-y-6">
+                
+                <!-- Objective Function Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-pink-100">
+                    <h2 class="text-xl font-semibold mb-4 text-pink-600 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Bước 1 & 2: Hàm mục tiêu F(x, y)
+                    </h2>
+                    <div class="flex flex-wrap items-center gap-4 text-lg">
+                        <span>F(x, y) = </span>
+                        <input type="number" id="objA" class="w-20 p-2 border-2 border-slate-200 rounded-xl focus:border-teal-400 focus:ring-0 outline-none text-center" placeholder="A" value="40">
+                        <span>x + </span>
+                        <input type="number" id="objB" class="w-20 p-2 border-2 border-slate-200 rounded-xl focus:border-teal-400 focus:ring-0 outline-none text-center" placeholder="B" value="30">
+                        <span>y</span>
+                        <select id="objType" class="p-2 border-2 border-slate-200 rounded-xl focus:border-teal-400 outline-none bg-white font-semibold text-teal-600">
+                            <option value="MAX">🡡 MAX</option>
+                            <option value="MIN">🡣 MIN</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Constraints Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-pink-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-pink-600 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                            Bước 3: Hệ ràng buộc
+                        </h2>
+                        <button onclick="addConstraint()" class="bg-teal-100 text-teal-700 hover:bg-teal-200 px-3 py-1 rounded-lg text-sm font-semibold transition-colors flex items-center">
+                            <span class="text-lg mr-1">+</span> Thêm
+                        </button>
+                    </div>
+                    
+                    <div id="constraints-list" class="space-y-3">
+                        <!-- Constraints will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Solve Button -->
+                <button onclick="solveLP()" class="w-full bg-teal-400 hover:bg-teal-500 text-white text-xl font-bold py-4 rounded-2xl shadow-md transition-transform transform active:scale-95">
+                    🚀 GIẢI BÀI TOÁN & VẼ ĐỒ THỊ
+                </button>
+
+                <!-- Message Box for Warnings/Errors -->
+                <div id="message-box" class="hidden p-4 rounded-xl text-sm font-medium"></div>
+
+                <!-- Results Table -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-pink-100 overflow-x-auto">
+                    <h2 class="text-xl font-semibold mb-4 text-pink-600">Bước 5: Toạ độ cực biên & Kết quả</h2>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-pink-50 text-pink-800">
+                                <th class="p-3 rounded-tl-xl">Đỉnh</th>
+                                <th class="p-3">Toạ độ (x, y)</th>
+                                <th class="p-3 rounded-tr-xl">Giá trị F(x, y)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody" class="text-slate-600">
+                            <tr><td colspan="3" class="p-4 text-center italic text-slate-400">Bấm giải bài toán để xem kết quả...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Graph -->
+            <div class="bg-white p-4 lg:p-6 rounded-2xl shadow-sm border border-pink-100 flex flex-col h-full">
+                <h2 class="text-xl font-semibold mb-4 text-pink-600 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                    Bước 4: Đồ thị Miền đa giác S
+                </h2>
+                <!-- JSXGraph Container -->
+                <div class="flex-grow w-full relative">
+                    <div id="box" class="jxgbox"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let constraintCount = 0;
+        let board = null;
+
+        // Bounding box for mathematical "unbounded" check
+        const HUGE_VAL = 10000;
+
+        // Initialize App
+        window.onload = () => {
+            // Default constraints from SGK examples
+            addConstraint(1, 2, '<=', 100);
+            addConstraint(2, 1, '<=', 80);
+            addConstraint(1, 0, '>=', 0);
+            addConstraint(0, 1, '>=', 0);
+            
+            // Init empty board
+            initBoard([-10, 110, 110, -10]);
+        };
+
+        // --- UI Logic ---
+        function addConstraint(a = '', b = '', op = '<=', c = '') {
+            constraintCount++;
+            const id = `constraint-${constraintCount}`;
+            const html = `
+                <div id="${id}" class="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 animate-fade-in">
+                    <input type="number" class="const-a w-16 p-2 border border-slate-200 rounded-lg text-center focus:border-teal-400 outline-none" placeholder="a" value="${a}">
+                    <span>x +</span>
+                    <input type="number" class="const-b w-16 p-2 border border-slate-200 rounded-lg text-center focus:border-teal-400 outline-none" placeholder="b" value="${b}">
+                    <span>y</span>
+                    <select class="const-op p-2 border border-slate-200 rounded-lg bg-white focus:border-teal-400 outline-none">
+                        <option value="<=" ${op === '<=' ? 'selected' : ''}>&le;</option>
+                        <option value=">=" ${op === '>=' ? 'selected' : ''}>&ge;</option>
+                    </select>
+                    <input type="number" class="const-c w-20 p-2 border border-slate-200 rounded-lg text-center focus:border-teal-400 outline-none" placeholder="c" value="${c}">
+                    <button onclick="document.getElementById('${id}').remove()" class="ml-auto bg-red-100 text-red-500 hover:bg-red-200 p-2 rounded-lg transition-colors" title="Xoá">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            `;
+            document.getElementById('constraints-list').insertAdjacentHTML('beforeend', html);
+        }
+
+        function showMessage(msg, type = 'error') {
+            const box = document.getElementById('message-box');
+            box.className = `p-4 rounded-xl text-sm font-medium block animate-fade-in ${
+                type === 'error' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-800'
+            }`;
+            box.innerHTML = msg;
+        }
+
+        function hideMessage() {
+            document.getElementById('message-box').classList.add('hidden');
+        }
+
+        // --- Mathematical Logic ---
+
+        // Find intersection of two lines: a1*x + b1*y = c1 and a2*x + b2*y = c2
+        function getIntersection(l1, l2) {
+            const det = l1.a * l2.b - l2.a * l1.b;
+            if (Math.abs(det) < 1e-10) return null; // Parallel lines
+            
+            const x = (l1.c * l2.b - l2.c * l1.b) / det;
+            const y = (l1.a * l2.c - l2.a * l1.c) / det;
+            return { x, y };
+        }
+
+        // Check if a point satisfies all constraints (with small tolerance for floating point)
+        function isFeasible(pt, constraints) {
+            const epsilon = 1e-6;
+            for (let c of constraints) {
+                const val = c.a * pt.x + c.b * pt.y;
+                if (c.op === '<=' && val > c.c + epsilon) return false;
+                if (c.op === '>=' && val < c.c - epsilon) return false;
+            }
+            return true;
+        }
+
+        // Sort vertices counter-clockwise to form a valid polygon
+        function sortCCW(points) {
+            if (points.length === 0) return points;
+            // Find centroid
+            let cx = 0, cy = 0;
+            points.forEach(p => { cx += p.x; cy += p.y; });
+            cx /= points.length;
+            cy /= points.length;
+
+            // Sort by angle from centroid
+            return points.sort((A, B) => {
+                const angleA = Math.atan2(A.y - cy, A.x - cx);
+                const angleB = Math.atan2(B.y - cy, B.x - cx);
+                return angleA - angleB;
+            });
+        }
+
+        // Main execution function
+        function solveLP() {
+            hideMessage();
+
+            // 1. Gather Objective Function
+            const objA = parseFloat(document.getElementById('objA').value) || 0;
+            const objB = parseFloat(document.getElementById('objB').value) || 0;
+            const objType = document.getElementById('objType').value;
+
+            // 2. Gather Constraints
+            const constraintDivs = document.getElementById('constraints-list').children;
+            const userConstraints = [];
+            
+            for (let div of constraintDivs) {
+                const a = parseFloat(div.querySelector('.const-a').value) || 0;
+                const b = parseFloat(div.querySelector('.const-b').value) || 0;
+                const op = div.querySelector('.const-op').value;
+                const c = parseFloat(div.querySelector('.const-c').value) || 0;
+                if(a === 0 && b === 0) continue; // skip degenerate
+                userConstraints.push({ a, b, op, c });
+            }
+
+            if (userConstraints.length === 0) {
+                showMessage("Vui lòng nhập ít nhất một ràng buộc.");
+                return;
+            }
+
+            // 3. Add artificial boundary constraints to test for unbounded regions
+            const boundingConstraints = [
+                { a: 1, b: 0, op: '<=', c: HUGE_VAL, isBound: true },
+                { a: -1, b: 0, op: '<=', c: HUGE_VAL, isBound: true },
+                { a: 0, b: 1, op: '<=', c: HUGE_VAL, isBound: true },
+                { a: 0, b: -1, op: '<=', c: HUGE_VAL, isBound: true }
+            ];
+            
+            const allConstraints = [...userConstraints, ...boundingConstraints];
+
+            // 4. Find all pairwise intersections
+            let rawPoints = [];
+            for (let i = 0; i < allConstraints.length; i++) {
+                for (let j = i + 1; j < allConstraints.length; j++) {
+                    const pt = getIntersection(allConstraints[i], allConstraints[j]);
+                    if (pt) rawPoints.push(pt);
+                }
+            }
+
+            // 5. Filter feasible points
+            let feasiblePoints = rawPoints.filter(pt => isFeasible(pt, allConstraints));
+
+            // Remove duplicates
+            const uniquePoints = [];
+            feasiblePoints.forEach(pt => {
+                if (!uniquePoints.some(u => Math.abs(u.x - pt.x) < 1e-5 && Math.abs(u.y - pt.y) < 1e-5)) {
+                    uniquePoints.push(pt);
+                }
+            });
+
+            if (uniquePoints.length === 0) {
+                showMessage("Hệ ràng buộc vô nghiệm (không có miền chấp nhận được).");
+                initBoard([-10, 10, 10, -10]);
+                document.getElementById('results-tbody').innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">Hệ vô nghiệm</td></tr>`;
+                return;
+            }
+
+            // 6. Sort for polygon drawing
+            const polygonVertices = sortCCW(uniquePoints);
+
+            // 7. Evaluate Objective Function
+            let results = polygonVertices.map(pt => {
+                const isFictional = Math.abs(pt.x) >= HUGE_VAL - 1 || Math.abs(pt.y) >= HUGE_VAL - 1;
+                const fVal = objA * pt.x + objB * pt.y;
+                return { ...pt, fVal, isFictional };
+            });
+
+            // Find optimal value
+            let optVal = objType === 'MAX' ? -Infinity : Infinity;
+            results.forEach(r => {
+                if (objType === 'MAX' && r.fVal > optVal) optVal = r.fVal;
+                if (objType === 'MIN' && r.fVal < optVal) optVal = r.fVal;
+            });
+
+            // Find all points that reach the optimal value
+            const optimalPoints = results.filter(r => Math.abs(r.fVal - optVal) < 1e-5);
+            const isUnbounded = optimalPoints.some(r => r.isFictional);
+
+            if (isUnbounded) {
+                showMessage("CẢNH BÁO: Miền đa giác S không bị chặn theo hướng tối ưu! Bài toán có thể không có giá trị cực đại/cực tiểu.", "warning");
+            }
+
+            // 8. Update UI & Graph
+            renderTable(results, optVal, isUnbounded);
+            drawGraph(userConstraints, polygonVertices, optimalPoints, isUnbounded);
+        }
+
+        // --- Rendering Logic ---
+
+        function renderTable(results, optVal, isUnbounded) {
+            const tbody = document.getElementById('results-tbody');
+            tbody.innerHTML = '';
+            
+            // Labels A, B, C...
+            const labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            
+            // Filter out fictional boundary points for display unless they are the optimal ones
+            const displayResults = results.filter(r => !r.isFictional);
+
+            displayResults.forEach((r, idx) => {
+                const isOpt = Math.abs(r.fVal - optVal) < 1e-5 && !isUnbounded;
+                const tr = document.createElement('tr');
+                tr.className = `border-b border-pink-50 transition-colors ${
+                    isOpt ? 'bg-pink-200 text-pink-900 font-bold scale-[1.01] shadow-sm' : 'hover:bg-pink-50/50'
+                }`;
+                
+                tr.innerHTML = `
+                    <td class="p-3">${labels[idx % labels.length]}</td>
+                    <td class="p-3">(${r.x.toFixed(2).replace(/\.00$/, '')}; ${r.y.toFixed(2).replace(/\.00$/, '')})</td>
+                    <td class="p-3 text-lg">${isOpt ? '⭐ ' : ''}${r.fVal.toFixed(2).replace(/\.00$/, '')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initBoard(bbox) {
+            if (board) JXG.JSXGraph.freeBoard(board);
+            board = JXG.JSXGraph.initBoard('box', {
+                boundingbox: bbox,
+                axis: true,
+                showCopyright: false,
+                pan: { enabled: true, needShift: false },
+                zoom: { enabled: true, wheel: true }
+            });
+        }
+
+        function drawGraph(constraints, vertices, optimalPoints, isUnbounded) {
+            // Determine viewing box based on non-fictional vertices
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            const realVertices = vertices.filter(v => Math.abs(v.x) < HUGE_VAL/2 && Math.abs(v.y) < HUGE_VAL/2);
+            
+            if (realVertices.length > 0) {
+                realVertices.forEach(v => {
+                    if (v.x < minX) minX = v.x;
+                    if (v.x > maxX) maxX = v.x;
+                    if (v.y < minY) minY = v.y;
+                    if (v.y > maxY) maxY = v.y;
+                });
+            } else {
+                minX = -10; maxX = 10; minY = -10; maxY = 10;
+            }
+
+            // Add padding
+            const padX = Math.max(2, (maxX - minX) * 0.2);
+            const padY = Math.max(2, (maxY - minY) * 0.2);
+            initBoard([minX - padX, maxY + padY, maxX + padX, minY - padY]);
+
+            // Draw constraint lines
+            // JXG Line standard form: [C, A, B] for A*x + B*y + C = 0
+            // User eq: a*x + b*y = c => a*x + b*y - c = 0 => [-c, a, b]
+            constraints.forEach(c => {
+                board.create('line', [-c.c, c.a, c.b], {
+                    strokeColor: '#94a3b8',
+                    strokeWidth: 1.5,
+                    dash: 2,
+                    highlight: false
+                });
+            });
+
+            // Draw shaded polygon
+            const polyPoints = vertices.map(v => [v.x, v.y]);
+            board.create('polygon', polyPoints, {
+                fillColor: '#fbcfe8', // pink-200
+                fillOpacity: 0.6,
+                borders: { strokeColor: '#f472b6', strokeWidth: 2 } // pink-400
+            });
+
+            // Draw vertices and highlight optimal
+            const labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let realIdx = 0;
+            
+            vertices.forEach((v) => {
+                if (Math.abs(v.x) >= HUGE_VAL/2 || Math.abs(v.y) >= HUGE_VAL/2) return; // skip drawing fake bounds
+
+                const isOpt = optimalPoints.some(opt => Math.abs(opt.x - v.x) < 1e-5 && Math.abs(opt.y - v.y) < 1e-5) && !isUnbounded;
+                
+                board.create('point', [v.x, v.y], {
+                    name: labels[realIdx % labels.length],
+                    size: isOpt ? 6 : 4,
+                    fillColor: isOpt ? '#ef4444' : '#14b8a6', // red-500 or teal-500
+                    strokeColor: 'white',
+                    strokeWidth: 2,
+                    label: { fontSize: 16, offset: [10, 10], color: isOpt ? '#ef4444' : '#334155' }
+                });
+
+                // Add arrow for optimal
+                if (isOpt) {
+                    const arrowLen = Math.max(padX, padY) * 0.5;
+                    const pStart = board.create('point', [v.x + arrowLen, v.y + arrowLen], {visible: false});
+                    const pEnd = board.create('point', [v.x, v.y], {visible: false});
+                    board.create('arrow', [pStart, pEnd], {
+                        strokeColor: '#ef4444',
+                        strokeWidth: 3,
+                        lastArrow: { type: 1, size: 6 }
+                    });
+                    
+                    board.create('text', [v.x + arrowLen, v.y + arrowLen + padY*0.1, "Tối ưu!"], {
+                        fontSize: 16,
+                        color: '#ef4444',
+                        fontWeight: 'bold',
+                        anchorX: 'left',
+                        anchorY: 'bottom'
+                    });
+                }
+                realIdx++;
+            });
+        }
+
+    </script>
+</body>
+</html>
